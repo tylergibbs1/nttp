@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    description TEXT,
     price REAL NOT NULL CHECK(price >= 0),
     category TEXT,
     in_stock BOOLEAN DEFAULT 1,
@@ -127,7 +128,7 @@ DATABASE_SCHEMA_INFO = {
         "description": "User accounts with status (active/inactive/suspended)"
     },
     "products": {
-        "columns": ["id", "name", "price", "category", "in_stock", "created_at"],
+        "columns": ["id", "name", "description", "price", "category", "in_stock", "created_at"],
         "description": "Product catalog with pricing and inventory"
     },
     "orders": {

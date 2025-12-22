@@ -61,20 +61,40 @@ curl "http://localhost:8000/query?q=show+me+10+products"
 Try these natural language queries:
 
 ```bash
-# List queries
+# User queries
 "get all active users"
-"show me 10 products"
+"show me 10 users"
+"count users by status"
+"find suspended users"
+"get users created in the last 30 days"
+
+# Product queries
+"show me 20 products"
+"list products in the electronics category"
+"find products under $50"
+"get out of stock products"
+"show expensive products over $500"
+"count products by category"
+
+# Order queries
 "list pending orders"
+"show me completed orders"
+"find orders over $1000"
+"get recent orders from the last week"
+"count orders by status"
 
-# Count queries
-"count active users"
-"how many products are in stock"
-"count completed orders"
+# Complex queries (joins and aggregations)
+"show orders with user details"
+"get order items with product names"
+"find top 10 customers by total order value"
+"show products that have never been ordered"
+"list users with their total number of orders"
+"get average order total by user status"
 
-# Filter queries
-"get users who signed up recently"
-"show me products in the electronics category"
-"find orders with status pending"
+# Search queries
+"find products with 'laptop' in the name"
+"search for users with gmail addresses"
+"show clothing products that are in stock"
 ```
 
 ## Explore the API

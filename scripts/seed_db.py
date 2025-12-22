@@ -9,31 +9,14 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from faker import Faker
 from app.database import init_db, execute_write
 
 
-# Sample data
-FIRST_NAMES = ["John", "Jane", "Mike", "Sarah", "David", "Emma", "Chris", "Lisa", "Tom", "Anna",
-               "James", "Mary", "Robert", "Jennifer", "Michael", "Linda", "William", "Barbara",
-               "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Karen", "Charles", "Nancy"]
+# Initialize Faker
+fake = Faker()
 
-LAST_NAMES = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-              "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
-              "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Thompson"]
-
-PRODUCT_NAMES = {
-    "electronics": ["Laptop", "Smartphone", "Tablet", "Headphones", "Smartwatch", "Camera",
-                    "Monitor", "Keyboard", "Mouse", "Webcam", "Speaker", "Charger", "USB Hub",
-                    "External Drive", "Router", "Printer", "Microphone", "Gaming Console"],
-    "clothing": ["T-Shirt", "Jeans", "Jacket", "Dress", "Sweater", "Shorts", "Hoodie",
-                 "Sneakers", "Boots", "Sandals", "Hat", "Socks", "Gloves", "Scarf"],
-    "food": ["Organic Apples", "Fresh Bread", "Milk", "Cheese", "Coffee Beans", "Tea",
-             "Pasta", "Rice", "Olive Oil", "Honey", "Chocolate", "Cookies", "Cereal"],
-    "books": ["Fiction Novel", "Programming Book", "Cookbook", "Biography", "Self-Help Book",
-              "History Book", "Science Book", "Art Book", "Travel Guide", "Dictionary"],
-    "home": ["Lamp", "Pillow", "Blanket", "Towel", "Cutting Board", "Coffee Maker",
-             "Blender", "Vacuum", "Fan", "Clock", "Mirror", "Plant Pot", "Candle"]
-}
+CATEGORIES = ["electronics", "clothing", "food", "books", "home"]
 
 STATUSES = {
     "user": ["active", "inactive", "suspended"],
@@ -50,16 +33,17 @@ def random_date(start_days_ago: int, end_days_ago: int = 0) -> datetime:
     return start + timedelta(seconds=random_seconds)
 
 
-async def seed_users(count: int = 50):
+async def seed_users(count: int = 10000):
     """Create random users."""
     print(f"Creating {count} users...")
     user_ids = []
 
     for i in range(count):
-        first = random.choice(FIRST_NAMES)
-        last = random.choice(LAST_NAMES)
-        email = f"{first.lower()}.{last.lower()}{i}@example.com"
-        name = f"{first} {last}"
+        if i % 1000 == 0:
+            print(f"  Created {i} users...")
+
+        email = fake.unique.email()
+        name = fake.name()
         status = random.choices(
             STATUSES["user"],
             weights=[70, 20, 10]  # 70% active, 20% inactive, 10% suspended
@@ -76,39 +60,58 @@ async def seed_users(count: int = 50):
     return user_ids
 
 
-async def seed_products(count: int = 100):
+async def seed_products(count: int = 5000):
     """Create random products."""
     print(f"Creating {count} products...")
     product_ids = []
 
-    for category, items in PRODUCT_NAMES.items():
-        for i in range(count // 5):  # Distribute evenly across categories
-            name = random.choice(items)
-            # Add variant if duplicate
-            if i > 0:
-                name = f"{name} {random.choice(['Pro', 'Plus', 'Deluxe', 'Premium', 'Standard'])}"
+    for i in range(count):
+        if i % 500 == 0:
+            print(f"  Created {i} products...")
 
-            price = round(random.uniform(9.99, 999.99), 2)
-            in_stock = random.choice([1, 1, 1, 0])  # 75% in stock
-            created_at = random_date(180, 0)  # Within last 6 months
+        category = random.choice(CATEGORIES)
 
-            product_id = await execute_write(
-                "INSERT INTO products (name, price, category, in_stock, created_at) VALUES (?, ?, ?, ?, ?)",
-                [name, price, category, in_stock, created_at]
-            )
-            product_ids.append(product_id)
+        # Generate product name and description based on category
+        if category == "electronics":
+            name = f"{fake.word().capitalize()} {random.choice(['Laptop', 'Phone', 'Tablet', 'Watch', 'Camera', 'Monitor'])}"
+            description = f"{fake.sentence()} Features include {fake.bs()}. {fake.catch_phrase()}. {fake.text(max_nb_chars=200)}"
+        elif category == "clothing":
+            name = f"{fake.color_name()} {random.choice(['Shirt', 'Jeans', 'Jacket', 'Dress', 'Sweater', 'Shoes'])}"
+            description = f"Stylish {name.lower()}. {fake.sentence()} Made with {fake.word()} material. {fake.text(max_nb_chars=200)}"
+        elif category == "food":
+            name = f"{random.choice(['Organic', 'Fresh', 'Premium'])} {fake.word().capitalize()}"
+            description = f"Delicious {name.lower()}. {fake.sentence()} {fake.text(max_nb_chars=200)}"
+        elif category == "books":
+            name = fake.catch_phrase()
+            description = f"By {fake.name()}. {fake.text(max_nb_chars=300)} Published {fake.year()}."
+        else:  # home
+            name = f"{fake.word().capitalize()} {random.choice(['Set', 'Collection', 'Bundle'])}"
+            description = f"Quality home product. {fake.sentence()} {fake.text(max_nb_chars=200)}"
+
+        price = round(random.uniform(9.99, 999.99), 2)
+        in_stock = random.choice([1, 1, 1, 0])  # 75% in stock
+        created_at = random_date(180, 0)  # Within last 6 months
+
+        product_id = await execute_write(
+            "INSERT INTO products (name, description, price, category, in_stock, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            [name, description, price, category, in_stock, created_at]
+        )
+        product_ids.append(product_id)
 
     print(f"Created {len(product_ids)} products")
     return product_ids
 
 
-async def seed_orders(user_ids: list, product_ids: list, count: int = 200):
+async def seed_orders(user_ids: list, product_ids: list, count: int = 150000):
     """Create random orders with items."""
     print(f"Creating {count} orders...")
     order_count = 0
     item_count = 0
 
-    for _ in range(count):
+    for i in range(count):
+        if i % 5000 == 0:
+            print(f"  Created {i} orders with {item_count} items...")
+
         user_id = random.choice(user_ids)
         status = random.choices(
             STATUSES["order"],
@@ -154,16 +157,18 @@ async def main():
     print("Initializing database...")
     await init_db()
 
-    print("\nSeeding database with test data...")
-    user_ids = await seed_users(50)
-    product_ids = await seed_products(100)
-    await seed_orders(user_ids, product_ids, 200)
+    print("\nSeeding database with large test dataset (target: ~200 MB)...")
+    print("This may take several minutes...\n")
+
+    user_ids = await seed_users(10000)
+    product_ids = await seed_products(5000)
+    await seed_orders(user_ids, product_ids, 150000)
 
     print("\nDatabase seeding complete!")
     print("\nDatabase summary:")
-    print("- 50 users (mix of active, inactive, suspended)")
-    print("- 100 products across 5 categories")
-    print("- 200 orders with ~500 order items")
+    print("- 10,000 users (mix of active, inactive, suspended)")
+    print("- 5,000 products across 5 categories with descriptions")
+    print("- 150,000 orders with ~375,000 order items")
     print("\nYou can now start the server and query the data!")
 
 
