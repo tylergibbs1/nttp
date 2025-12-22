@@ -1,1 +1,613 @@
-{"openapi":"3.1.0","info":{"title":"NTTP API","description":"Natural Text Transfer Protocol - Query databases with natural language","version":"1.0.0"},"paths":{"/query":{"post":{"summary":"Query Post","description":"Execute natural language query.\n\nThis is the main endpoint for NTTP queries. It accepts a natural language\nquery and returns structured data with an inferred or cached schema.\n\nArgs:\n    request: QueryRequest with query string and options\n\nReturns:\n    QueryResponse with data, schema_id, and metadata\n\nExample:\n    ```\n    POST /query\n    {\n      \"query\": \"get all active users\",\n      \"use_cache\": true\n    }\n    ```","operationId":"query_post_query_post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/QueryRequest"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/QueryResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"get":{"summary":"Query Get","description":"Execute natural language query (GET convenience endpoint).\n\nSame as POST /query but accepts query parameters for easy testing.\n\nExample:\n    ```\n    GET /query?q=show+me+active+users\n    ```","operationId":"query_get_query_get","parameters":[{"name":"q","in":"query","required":true,"schema":{"type":"string","description":"Natural language query","title":"Q"},"description":"Natural language query"},{"name":"use_cache","in":"query","required":false,"schema":{"type":"boolean","description":"Use schema cache","default":true,"title":"Use Cache"},"description":"Use schema cache"},{"name":"force_new_schema","in":"query","required":false,"schema":{"type":"boolean","description":"Force schema re-inference","default":false,"title":"Force New Schema"},"description":"Force schema re-inference"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/QueryResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/schemas":{"get":{"summary":"List Schemas","description":"List all cached schemas.\n\nReturns metadata for all schemas in the cache including usage statistics.\n\nExample response:\n    ```json\n    {\n      \"schemas\": [\n        {\n          \"schema_id\": \"a1b2c3d4e5f6g7h8\",\n          \"intent_pattern\": \"entity:users|operation:list|filters:status=active\",\n          \"use_count\": 42,\n          \"pinned\": false,\n          \"created_at\": \"2024-01-15T10:30:00\",\n          \"last_used_at\": \"2024-01-15T14:20:00\"\n        }\n      ],\n      \"total\": 1\n    }\n    ```","operationId":"list_schemas_schemas_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SchemaListResponse"}}}}}}},"/schemas/{schema_id}":{"get":{"summary":"Get Schema","description":"Get specific schema details.\n\nReturns complete schema definition including JSON schema structure.\n\nArgs:\n    schema_id: Schema identifier\n\nReturns:\n    Full schema definition with JSON schema","operationId":"get_schema_schemas__schema_id__get","parameters":[{"name":"schema_id","in":"path","required":true,"schema":{"type":"string","title":"Schema Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"summary":"Delete Schema","description":"Delete schema from cache.\n\nPinned schemas cannot be deleted and will return an error.\n\nArgs:\n    schema_id: Schema identifier","operationId":"delete_schema_schemas__schema_id__delete","parameters":[{"name":"schema_id","in":"path","required":true,"schema":{"type":"string","title":"Schema Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/schemas/{schema_id}/pin":{"put":{"summary":"Pin Schema","description":"Pin schema to prevent eviction.\n\nPinned schemas are never removed from the cache automatically.\n\nArgs:\n    schema_id: Schema identifier","operationId":"pin_schema_schemas__schema_id__pin_put","parameters":[{"name":"schema_id","in":"path","required":true,"schema":{"type":"string","title":"Schema Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/schemas/{schema_id}/unpin":{"put":{"summary":"Unpin Schema","description":"Unpin schema to allow eviction.\n\nArgs:\n    schema_id: Schema identifier","operationId":"unpin_schema_schemas__schema_id__unpin_put","parameters":[{"name":"schema_id","in":"path","required":true,"schema":{"type":"string","title":"Schema Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/intents":{"get":{"summary":"List Intents","description":"List known intent patterns.\n\nReturns all cached intent patterns sorted by usage frequency.\nThis helps understand what queries the system has learned.\n\nExample response:\n    ```json\n    {\n      \"intents\": [\n        {\n          \"pattern\": \"entity:users|operation:list|filters:status=active\",\n          \"schema_id\": \"a1b2c3d4e5f6g7h8\",\n          \"use_count\": 42,\n          \"example_queries\": [\"get active users\", \"show me active users\"]\n        }\n      ],\n      \"total\": 1\n    }\n    ```","operationId":"list_intents_intents_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/IntentListResponse"}}}}}}},"/explain":{"post":{"summary":"Explain Query","description":"Explain query without executing.\n\nShows how the query would be parsed, what SQL would be generated,\nand what schema would be used - all without actually running the query.\n\nUseful for debugging and understanding the system's interpretation.\n\nArgs:\n    request: QueryRequest with query string\n\nReturns:\n    ExplainResponse with intent, SQL, and schema information\n\nExample:\n    ```\n    POST /explain\n    {\n      \"query\": \"get all active users\"\n    }\n    ```","operationId":"explain_query_explain_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/QueryRequest"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExplainResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/health":{"get":{"summary":"Health","description":"Health check endpoint.","operationId":"health_health_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/":{"get":{"summary":"Root","description":"Root endpoint with API information.","operationId":"root__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}}},"components":{"schemas":{"ExplainResponse":{"properties":{"query":{"type":"string","title":"Query","description":"Original query"},"intent":{"additionalProperties":true,"type":"object","title":"Intent","description":"Parsed intent"},"sql":{"type":"string","title":"Sql","description":"Generated SQL"},"params":{"items":{},"type":"array","title":"Params","description":"SQL parameters"},"schema_id":{"type":"string","title":"Schema Id","description":"Schema ID that would be used"},"cached_schema":{"anyOf":[{"additionalProperties":true,"type":"object"},{"type":"null"}],"title":"Cached Schema","description":"Existing cached schema if available"}},"type":"object","required":["query","intent","sql","params","schema_id"],"title":"ExplainResponse","description":"Response model for query explanation."},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"IntentListResponse":{"properties":{"intents":{"items":{"additionalProperties":true,"type":"object"},"type":"array","title":"Intents","description":"List of intent patterns"},"total":{"type":"integer","title":"Total","description":"Total number of intents"}},"type":"object","required":["intents","total"],"title":"IntentListResponse","description":"Response model for listing intents."},"QueryRequest":{"properties":{"query":{"type":"string","maxLength":500,"minLength":1,"title":"Query","description":"Natural language query"},"use_cache":{"type":"boolean","title":"Use Cache","description":"Whether to use schema cache","default":true},"force_new_schema":{"type":"boolean","title":"Force New Schema","description":"Force schema re-inference","default":false}},"type":"object","required":["query"],"title":"QueryRequest","description":"Request model for natural language queries."},"QueryResponse":{"properties":{"data":{"title":"Data","description":"Query results"},"schema_id":{"type":"string","title":"Schema Id","description":"Schema identifier"},"cache_hit":{"type":"boolean","title":"Cache Hit","description":"Whether schema was from cache"},"execution_time_ms":{"type":"number","title":"Execution Time Ms","description":"Total execution time in milliseconds"},"generated_sql":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Generated Sql","description":"Generated SQL query (for debugging)"},"intent":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Intent","description":"Normalized intent (for debugging)"}},"type":"object","required":["data","schema_id","cache_hit","execution_time_ms"],"title":"QueryResponse","description":"Response model for query results."},"SchemaListResponse":{"properties":{"schemas":{"items":{"additionalProperties":true,"type":"object"},"type":"array","title":"Schemas","description":"List of schema metadata"},"total":{"type":"integer","title":"Total","description":"Total number of schemas"}},"type":"object","required":["schemas","total"],"title":"SchemaListResponse","description":"Response model for listing schemas."},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"}}}}
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NTTP API",
+        "description": "Natural Text Transfer Protocol - Query databases with natural language",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/query": {
+            "post": {
+                "summary": "Query Post",
+                "description": "Execute natural language query.\n\nThis is the main endpoint for NTTP queries. It accepts a natural language\nquery and returns structured data with an inferred or cached schema.\n\nArgs:\n    request: QueryRequest with query string and options\n\nReturns:\n    QueryResponse with data, schema_id, and metadata\n\nExample:\n    ```\n    POST /query\n    {\n      \"query\": \"get all active users\",\n      \"use_cache\": true\n    }\n    ```",
+                "operationId": "query_post_query_post",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QueryRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "summary": "Query Get",
+                "description": "Execute natural language query (GET convenience endpoint).\n\nSame as POST /query but accepts query parameters for easy testing.\n\nExample:\n    ```\n    GET /query?q=show+me+active+users\n    ```",
+                "operationId": "query_get_query_get",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "Natural language query",
+                            "title": "Q"
+                        },
+                        "description": "Natural language query"
+                    },
+                    {
+                        "name": "use_cache",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "description": "Use schema cache",
+                            "default": true,
+                            "title": "Use Cache"
+                        },
+                        "description": "Use schema cache"
+                    },
+                    {
+                        "name": "force_new_schema",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "description": "Force schema re-inference",
+                            "default": false,
+                            "title": "Force New Schema"
+                        },
+                        "description": "Force schema re-inference"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schemas": {
+            "get": {
+                "summary": "List Schemas",
+                "description": "List all cached schemas.\n\nReturns metadata for all schemas in the cache including usage statistics.\n\nExample response:\n    ```json\n    {\n      \"schemas\": [\n        {\n          \"schema_id\": \"a1b2c3d4e5f6g7h8\",\n          \"intent_pattern\": \"entity:users|operation:list|filters:status=active\",\n          \"use_count\": 42,\n          \"pinned\": false,\n          \"created_at\": \"2024-01-15T10:30:00\",\n          \"last_used_at\": \"2024-01-15T14:20:00\"\n        }\n      ],\n      \"total\": 1\n    }\n    ```",
+                "operationId": "list_schemas_schemas_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SchemaListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schemas/{schema_id}": {
+            "get": {
+                "summary": "Get Schema",
+                "description": "Get specific schema details.\n\nReturns complete schema definition including JSON schema structure.\n\nArgs:\n    schema_id: Schema identifier\n\nReturns:\n    Full schema definition with JSON schema",
+                "operationId": "get_schema_schemas__schema_id__get",
+                "parameters": [
+                    {
+                        "name": "schema_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Schema Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete Schema",
+                "description": "Delete schema from cache.\n\nPinned schemas cannot be deleted and will return an error.\n\nArgs:\n    schema_id: Schema identifier",
+                "operationId": "delete_schema_schemas__schema_id__delete",
+                "parameters": [
+                    {
+                        "name": "schema_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Schema Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schemas/{schema_id}/pin": {
+            "put": {
+                "summary": "Pin Schema",
+                "description": "Pin schema to prevent eviction.\n\nPinned schemas are never removed from the cache automatically.\n\nArgs:\n    schema_id: Schema identifier",
+                "operationId": "pin_schema_schemas__schema_id__pin_put",
+                "parameters": [
+                    {
+                        "name": "schema_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Schema Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/schemas/{schema_id}/unpin": {
+            "put": {
+                "summary": "Unpin Schema",
+                "description": "Unpin schema to allow eviction.\n\nArgs:\n    schema_id: Schema identifier",
+                "operationId": "unpin_schema_schemas__schema_id__unpin_put",
+                "parameters": [
+                    {
+                        "name": "schema_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Schema Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/intents": {
+            "get": {
+                "summary": "List Intents",
+                "description": "List known intent patterns.\n\nReturns all cached intent patterns sorted by usage frequency.\nThis helps understand what queries the system has learned.\n\nExample response:\n    ```json\n    {\n      \"intents\": [\n        {\n          \"pattern\": \"entity:users|operation:list|filters:status=active\",\n          \"schema_id\": \"a1b2c3d4e5f6g7h8\",\n          \"use_count\": 42,\n          \"example_queries\": [\"get active users\", \"show me active users\"]\n        }\n      ],\n      \"total\": 1\n    }\n    ```",
+                "operationId": "list_intents_intents_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IntentListResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/explain": {
+            "post": {
+                "summary": "Explain Query",
+                "description": "Explain query without executing.\n\nShows how the query would be parsed, what SQL would be generated,\nand what schema would be used - all without actually running the query.\n\nUseful for debugging and understanding the system's interpretation.\n\nArgs:\n    request: QueryRequest with query string\n\nReturns:\n    ExplainResponse with intent, SQL, and schema information\n\nExample:\n    ```\n    POST /explain\n    {\n      \"query\": \"get all active users\"\n    }\n    ```",
+                "operationId": "explain_query_explain_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QueryRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExplainResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "summary": "Health",
+                "description": "Health check endpoint.",
+                "operationId": "health_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/": {
+            "get": {
+                "summary": "Root",
+                "description": "Root endpoint with API information.",
+                "operationId": "root__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ExplainResponse": {
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "title": "Query",
+                        "description": "Original query"
+                    },
+                    "intent": {
+                        "additionalProperties": true,
+                        "type": "object",
+                        "title": "Intent",
+                        "description": "Parsed intent"
+                    },
+                    "sql": {
+                        "type": "string",
+                        "title": "Sql",
+                        "description": "Generated SQL"
+                    },
+                    "params": {
+                        "items": {},
+                        "type": "array",
+                        "title": "Params",
+                        "description": "SQL parameters"
+                    },
+                    "schema_id": {
+                        "type": "string",
+                        "title": "Schema Id",
+                        "description": "Schema ID that would be used"
+                    },
+                    "cached_schema": {
+                        "anyOf": [
+                            {
+                                "additionalProperties": true,
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Cached Schema",
+                        "description": "Existing cached schema if available"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "query",
+                    "intent",
+                    "sql",
+                    "params",
+                    "schema_id"
+                ],
+                "title": "ExplainResponse",
+                "description": "Response model for query explanation."
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "IntentListResponse": {
+                "properties": {
+                    "intents": {
+                        "items": {
+                            "additionalProperties": true,
+                            "type": "object"
+                        },
+                        "type": "array",
+                        "title": "Intents",
+                        "description": "List of intent patterns"
+                    },
+                    "total": {
+                        "type": "integer",
+                        "title": "Total",
+                        "description": "Total number of intents"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "intents",
+                    "total"
+                ],
+                "title": "IntentListResponse",
+                "description": "Response model for listing intents."
+            },
+            "QueryRequest": {
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "minLength": 1,
+                        "title": "Query",
+                        "description": "Natural language query"
+                    },
+                    "use_cache": {
+                        "type": "boolean",
+                        "title": "Use Cache",
+                        "description": "Whether to use schema cache",
+                        "default": true
+                    },
+                    "force_new_schema": {
+                        "type": "boolean",
+                        "title": "Force New Schema",
+                        "description": "Force schema re-inference",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "query"
+                ],
+                "title": "QueryRequest",
+                "description": "Request model for natural language queries."
+            },
+            "QueryResponse": {
+                "properties": {
+                    "data": {
+                        "title": "Data",
+                        "description": "Query results"
+                    },
+                    "schema_id": {
+                        "type": "string",
+                        "title": "Schema Id",
+                        "description": "Schema identifier"
+                    },
+                    "cache_hit": {
+                        "type": "boolean",
+                        "title": "Cache Hit",
+                        "description": "Whether schema was from cache"
+                    },
+                    "execution_time_ms": {
+                        "type": "number",
+                        "title": "Execution Time Ms",
+                        "description": "Total execution time in milliseconds"
+                    },
+                    "generated_sql": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Generated Sql",
+                        "description": "Generated SQL query (for debugging)"
+                    },
+                    "intent": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Intent",
+                        "description": "Normalized intent (for debugging)"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data",
+                    "schema_id",
+                    "cache_hit",
+                    "execution_time_ms"
+                ],
+                "title": "QueryResponse",
+                "description": "Response model for query results."
+            },
+            "SchemaListResponse": {
+                "properties": {
+                    "schemas": {
+                        "items": {
+                            "additionalProperties": true,
+                            "type": "object"
+                        },
+                        "type": "array",
+                        "title": "Schemas",
+                        "description": "List of schema metadata"
+                    },
+                    "total": {
+                        "type": "integer",
+                        "title": "Total",
+                        "description": "Total number of schemas"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "schemas",
+                    "total"
+                ],
+                "title": "SchemaListResponse",
+                "description": "Response model for listing schemas."
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}
