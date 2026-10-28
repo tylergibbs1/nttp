@@ -2,8 +2,6 @@
 
 Replace traditional API development with natural language requests that return structured, schema-consistent data.
 
-## Overview
-
 NTTP accepts plain text queries and returns structured data with automatically inferred and cached schemas for consistency. Built with **Anthropic's Structured Outputs** for guaranteed schema compliance and zero JSON parsing errors.
 
 ```bash
@@ -13,38 +11,38 @@ curl -X POST http://localhost:8000/query \
   -d '{"query": "get all active users who signed up this month"}'
 ```
 
-## Quick Start
+## Quick start
 
-### 1. Install Dependencies
+### 1. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+# Edit .env and add your ANTHROPIC_API_KEY (DATABASE_PATH and LOG_LEVEL are optional)
 ```
 
-### 3. Initialize Database
+### 3. Initialize database
 
 ```bash
 python scripts/seed_db.py
 ```
 
-### 4. Run Server
+### 4. Run server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 5. Try It Out
+### 5. Try it out
 
-Visit `http://localhost:8000/docs` for interactive API documentation.
+Visit `http://localhost:8000/docs` for interactive API documentation, or see [QUICKSTART.md](QUICKSTART.md) for example queries.
 
-## Architecture
+## How it works
 
 ![NTTP Architecture](public/figure1.jpeg)
 
@@ -53,14 +51,6 @@ Visit `http://localhost:8000/docs` for interactive API documentation.
 ```
 HTTP Request → Intent Parser (LLM) → Cache Lookup → [hit: format] / [miss: SQL Gen → Execute → Infer Schema → Cache]
 ```
-
-## API Endpoints
-
-- `POST /query` - Execute natural language query
-- `GET /schemas` - List cached schemas
-- `GET /schemas/{schema_id}` - Get specific schema
-- `POST /explain` - Explain query without executing
-- `GET /intents` - List known intent patterns
 
 ## Features
 
@@ -79,15 +69,19 @@ HTTP Request → Intent Parser (LLM) → Cache Lookup → [hit: format] / [miss:
 - **⚡ Grammar Caching**: First-query compilation, then sub-50ms cache hits
 - **🔒 Production-Ready**: Comprehensive error handling and logging
 
-## Success Criteria
+## API endpoints
 
-- [x] Natural language query interface
-- [x] Automatic schema inference and caching
-- [x] Sub-50ms cache hit latency
-- [x] Schema management endpoints
-- [x] Comprehensive test coverage
+- `POST /query` - Execute natural language query
+- `GET /query?q=...` - Same, as a GET request (handy for testing)
+- `POST /explain` - Explain query without executing
+- `GET /schemas` - List cached schemas
+- `GET /schemas/{schema_id}` - Get specific schema
+- `PUT /schemas/{schema_id}/pin` / `PUT /schemas/{schema_id}/unpin` - Pin or unpin a cached schema
+- `DELETE /schemas/{schema_id}` - Delete a cached schema
+- `GET /intents` - List known intent patterns
+- `GET /health` - Health check
 
-## Tech Stack
+## Tech stack
 
 - **FastAPI**: Async web framework
 - **SQLite + aiosqlite**: Embedded database
@@ -98,10 +92,23 @@ HTTP Request → Intent Parser (LLM) → Cache Lookup → [hit: format] / [miss:
 ## Documentation
 
 - **[QUICKSTART.md](QUICKSTART.md)**: 5-minute getting started guide
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)**: Complete implementation details
-- **[STRUCTURED_OUTPUTS_UPGRADE.md](STRUCTURED_OUTPUTS_UPGRADE.md)**: Structured outputs feature guide
-- **[UPGRADE_SUMMARY.md](UPGRADE_SUMMARY.md)**: Quick upgrade overview
 - **/docs**: Interactive API documentation (http://localhost:8000/docs when server running)
+
+## Development
+
+```bash
+pytest
+```
+
+Tests live in [tests/](tests).
+
+## Success criteria
+
+- [x] Natural language query interface
+- [x] Automatic schema inference and caching
+- [x] Sub-50ms cache hit latency
+- [x] Schema management endpoints
+- [x] Comprehensive test coverage
 
 ## License
 
